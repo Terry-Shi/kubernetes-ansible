@@ -1,0 +1,111 @@
+---
+# install etcd service
+- name: make sure etcd is installed
+  package:
+    name: etcd
+    state: latest
+
+- name: etcd template and configuration
+  template:
+    src: { item.copyfrom }
+    dest: { item.copyto }
+  with_items:
+    - { copyfrom: 'templates/service/etcd.service', copyto: '/lib/systemd/system/etcd.service' }
+    - { copyfrom: 'templates/config/etcd.conf', copyto: '/etc/etcd/etcd.conf' }
+  
+- name: restart service etct, in all cases, also issue daemon-reload to pick up config changes
+  systemd:
+    name: etcd
+    state: restarted
+    daemon_reload: yes
+    enabled: yes
+
+# install flanneld service
+- name: make sure etcd is installed
+  package:
+    name: flanneld
+    state: latest
+
+- name: flanneld template and configuration
+  template:
+    src: { item.copyfrom }
+    dest: { item.copyto }
+  with_items:
+    - { copyfrom: 'templates/service/flanneld.service', copyto: '/lib/systemd/system/flanneld.service' }
+    - { copyfrom: 'templates/config/flanneld.conf', copyto: '/etc/etcd/flanneld.conf' }
+  
+- name: restart service flanneld, in all cases, also issue daemon-reload to pick up config changes
+  systemd:
+    name: flanneld
+    state: restarted
+    daemon_reload: yes
+    enabled: yes 
+
+# prepare shell script for all container
+- name: templates
+  template:
+    src: templates/shellscript/{{ item.src }} 
+    dest: /tmp/k8s/shellscript/{{ item.dest }}
+    mode: 0744
+  with_items:
+    - {src: apiserver.sh, dest: apiserver.sh}
+    - {src: controller-manager.sh, dest: controller-manager.sh}
+    - {src: scheduler.sh, dest: scheduler.sh}  
+    - {src: kubep-roxy.sh, dest: kubeproxy.sh}  
+
+# Apiserver container
+- name: stop apiserver 
+  command: docker stop apiserver
+  
+- name: stop apiserver 
+  command: docker rm apiserver
+
+- name: start apiserver
+  shell: ./apiserver.sh
+  args:
+    chdir: /tmp/k8s/shellscript/
+  
+# controller-manager container
+- name: stop controller-manager 
+  command: docker stop controller-manager
+  
+- name: stop controller-manager 
+  command: docker rm controller-manager
+
+- name: start controller-manager
+  shell: ./controller-manager.sh
+  args:
+    chdir: /tmp/k8s/shellscript/  
+
+# scheduler container  
+- name: stop scheduler
+  command: docker stop scheduler
+  
+- name: stop scheduler 
+  command: docker rm scheduler
+
+- name: start scheduler
+  shell: ./scheduler.sh
+  args:
+    chdir: /tmp/k8s/shellscript/   
+  
+# kube-proxy container  
+- name: stop kube-proxy
+  command: docker stop kube-proxy
+  
+- name: stop kube-proxy 
+  command: docker rm kube-proxy
+
+- name: start kube-proxy
+  shell: ./kube-proxy.sh
+  args:
+    chdir: /tmp/k8s/shellscript/   
+  
+# install kubectl service
+- name: make sure kubectl is installed
+  package:
+    name: kubectl
+    state: latest  
+  
+  
+  
