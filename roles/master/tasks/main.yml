@@ -5,13 +5,13 @@
     name: etcd
     state: latest
 
-- name: etcd template and configuration
+- name: copy etcd service and conf file
   template:
     src: { item.copyfrom }
     dest: { item.copyto }
   with_items:
-    - { copyfrom: 'templates/service/etcd.service', copyto: '/lib/systemd/system/etcd.service' }
-    - { copyfrom: 'templates/config/etcd.conf', copyto: '/etc/etcd/etcd.conf' }
+    - { copyfrom: 'service/etcd.service', copyto: '/lib/systemd/system/etcd.service' }
+    - { copyfrom: 'config/etcd.conf', copyto: '/etc/etcd/etcd.conf' }
   
 - name: restart service etct, in all cases, also issue daemon-reload to pick up config changes
   systemd:
@@ -31,8 +31,8 @@
     src: { item.copyfrom }
     dest: { item.copyto }
   with_items:
-    - { copyfrom: 'templates/service/flanneld.service', copyto: '/lib/systemd/system/flanneld.service' }
-    - { copyfrom: 'templates/config/flanneld.conf', copyto: '/etc/etcd/flanneld.conf' }
+    - { copyfrom: 'service/flanneld.service', copyto: '/lib/systemd/system/flanneld.service' }
+    - { copyfrom: 'config/flanneld.conf', copyto: '/etc/flanneld/flanneld.conf' }
   
 - name: restart service flanneld, in all cases, also issue daemon-reload to pick up config changes
   systemd:
@@ -42,9 +42,14 @@
     enabled: yes 
 
 # prepare shell script for all container
-- name: templates
+- name: Create /tmp/k8s/shellscript/ directory
+  file:
+    path: "/tmp/k8s/shellscript/"
+    state: "directory"
+
+- name: copy shellscript to /tmp/k8s/shellscript/
   template:
-    src: templates/shellscript/{{ item.src }} 
+    src: shellscript/{{ item.src }} 
     dest: /tmp/k8s/shellscript/{{ item.dest }}
     mode: 0744
   with_items:
@@ -107,5 +112,8 @@
     name: kubectl
     state: latest  
   
+# cleanup
+- name: finalCleanup
+  file: path=/tmp/k8s/shellscript/ state=absent
   
   
