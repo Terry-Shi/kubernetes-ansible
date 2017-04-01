@@ -1,12 +1,17 @@
 [master]
-10.19.130.134
+10.19.130.149
 
 [slave]
 10.19.130.150
 10.19.130.149
 
+[all:children]
+master
+slave
+
 [master:vars]
+docker_version=1.12.6
 kubernetes_version=v1.6.0
 etcd_cluster=
 cluster_dns=
-flannel_etcd=http://10.19.248.12:2379,http://10.19.248.13:2379,http://10.19.248.14:2379
+flannel_etcd=http://10.19.130.123:2379

@@ -1,0 +1,49 @@
+---
+# install docker 
+#- name: Create /tmp/k8s/docker directory locally
+#  file:
+#    path: "/tmp/k8s/"
+#    state: "directory"
+#  delegate_to: localhost            
+
+#- name: Download docker locally
+#  get_url:
+#    url: "https://get.docker.com/builds/Linux/x86_64/docker-{{ docker_version }}.tgz"
+#    dest: "/tmp/k8s/"
+#    validate_certs: no
+#    mode: 0644
+#  delegate_to: localhost
+
+#- name: Create /tmp/k8s/docker directory locally
+#  file:
+#    path: "/tmp/k8s/"
+#    state: "directory"
+
+- name: copy docker file to target server
+  copy: src=docker-{{ docker_version }}.tgz dest=/tmp/k8s/
+
+- name: tar docker.tgz
+  shell: tar -xzvf /tmp/k8s/docker-{{ docker_version }}.tgz -C /tmp/k8s/
+
+- name: tar docker.tgz
+  shell: mv /tmp/k8s/docker/* /usr/bin/
+
+- name: docker configuration
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  with_items:
+    - { src: "service/docker.service", dest: "/lib/systemd/system/docker.service" }
+  
+- name: restart service docker, in all cases, also issue daemon-reload to pick up config changes
+  systemd:
+    name: docker
+    state: restarted
+    daemon_reload: yes
+    enabled: yes 
+  
+# cleanup
+- name: finalCleanup
+  file: path=/tmp/k8s/ state=absent
+  
+  

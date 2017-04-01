@@ -1,0 +1,7 @@
+deploy_environment: local
+
+docker_version: 1.12.6
+registry_url: "10.19.248.12:30100"
+docker_dir: /data/docker
+# FLANNEL_SUBNET=
+flannel_subnet: "172.16.0.0/16"
