@@ -1,4 +1,5 @@
 ---
+# ----------------binary file----------------------------
 # install docker 
 #- name: Create /tmp/k8s/docker directory locally
 #  file:
@@ -19,15 +20,84 @@
 #    path: "/tmp/k8s/"
 #    state: "directory"
 
-- name: copy docker file to target server
-  copy: src=docker-{{ docker_version }}.tgz dest=/tmp/k8s/
+#- name: copy docker file to target server
+#  copy: src=docker-{{ docker_version }}.tgz dest=/tmp/k8s/
 
-- name: tar docker.tgz
-  shell: tar -xzvf /tmp/k8s/docker-{{ docker_version }}.tgz -C /tmp/k8s/
+#- name: tar docker.tgz
+#  shell: tar -xzvf /tmp/k8s/docker-{{ docker_version }}.tgz -C /tmp/k8s/
 
-- name: tar docker.tgz
-  shell: mv /tmp/k8s/docker/* /usr/bin/
+#- name: tar docker.tgz
+#  shell: mv /tmp/k8s/docker/* /usr/bin/
 
+# yum provides docker 搜索出的docker版本docker-1.12.6-11.el7.centos.x86_64 会依赖下面这个rpm包  container-selinux-2.9-4.el7.noarch 
+# "msg": "Error: docker-engine-selinux conflicts with 2:container-selinux-2.9-4.el7.noarch\n",
+
+# -------------------- rpm from a remote repo------------------------
+#- name: remove the docker-engine rpm from a remote repo
+#  yum:
+#    name: docker-engine
+#    state: absent
+
+#- name: remove the docker-engine rpm from a remote repo
+#  yum:
+#    name: docker-engine-selinux
+#    state: absent
+
+#- name: check installed package
+#  command: yum list installed | grep docker
+
+#- name: install the docker-engine-selinux rpm from a remote repo
+#  yum:
+#    name: https://yum.dockerproject.org/repo/main/centos/7/Packages/docker-engine-selinux-1.13.1-1.el7.centos.noarch.rpm
+#    state: present
+
+#- name: install the docker-engine rpm from a remote repo
+#  yum:
+#    name: https://yum.dockerproject.org/repo/main/centos/7/Packages/docker-engine-1.13.1-1.el7.centos.x86_64.rpm
+#    state: present
+
+# ---------------------from docker repo-----------------------
+- name: Add repository
+  yum_repository:
+    name: dockerrepo
+    description: docker YUM repo
+    baseurl: https://yum.dockerproject.org/repo/main/centos/7/
+    enabled: yes
+    gpgkey: https://yum.dockerproject.org/gpg
+    gpgcheck: yes
+
+- name: check if specific version of docker-engine is installed
+  yum:
+    list="docker-engine-{{docker_version}}"
+  register: docker_engine_pkg
+
+- name: uninstall docker-engine-selinux
+  yum:
+    name: docker-engine
+    state: absent
+  when: not docker_engine_pkg.results[0].yumstate == 'installed'
+  
+- name: check if specific version of docker-engine-selinux is installed
+  yum:
+    list="docker-engine-selinux-{{docker_version}}"
+  register: docker_engine_selinux_pkg
+
+- name: uninstall docker-engine-selinux
+  yum:
+    name: docker-engine-selinux
+    state: absent
+  when: not docker_engine_selinux_pkg.results[0].yumstate == 'installed'
+
+- name: install one specific version of docker-engine-selinux
+  yum:
+    name: docker-engine-selinux-{{docker_version}}
+    state: installed
+
+- name: install one specific version of docker-engine
+  yum:
+    name: docker-engine-{{docker_version}}
+    state: installed
+    
 - name: docker configuration
   template:
     src: "{{ item.src }}"

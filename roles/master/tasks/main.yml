@@ -2,8 +2,8 @@
 # install etcd service
 - name: make sure etcd is installed
   package:
-    name: etcd
-    state: latest
+    name: etcd-3.1.0
+    state: installed
 
 - name: copy etcd service and conf file
   template:
