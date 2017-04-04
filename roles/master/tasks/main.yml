@@ -1,39 +1,68 @@
 ---
+# prepare shell script for all container
+- name: Create /tmp/k8s/shellscript/ directory
+  file:
+    path: "/tmp/k8s/shellscript/"
+    state: "directory"
+    
+- name: copy shellscript to /tmp/k8s/shellscript/
+  template:
+    src: shellscript/{{ item.src }} 
+    dest: /tmp/k8s/shellscript/{{ item.dest }}
+    mode: 0744
+  with_items:
+    - {src: install.sh, dest: install.sh}
+    - {src: apiserver.sh, dest: apiserver.sh}
+    - {src: controller-manager.sh, dest: controller-manager.sh}
+    - {src: scheduler.sh, dest: scheduler.sh}  
+    - {src: kube-proxy.sh, dest: kube-proxy.sh} 
+    
 # install etcd service
 - name: make sure etcd is installed
   package:
     name: etcd-3.1.0
     state: installed
 
+- name: debug etcd_cluster value
+  debug: msg="{{etcd_init_cluster}}---{{ip_range}}---{{registry_url}}"
+
 - name: copy etcd service and conf file
   template:
-    src: { item.copyfrom }
-    dest: { item.copyto }
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
   with_items:
-    - { copyfrom: 'service/etcd.service', copyto: '/lib/systemd/system/etcd.service' }
-    - { copyfrom: 'config/etcd.conf', copyto: '/etc/etcd/etcd.conf' }
+    - { src: 'service/etcd.service', dest: '/lib/systemd/system/etcd.service' }
+    - { src: 'config/etcd.conf', dest: '/etc/etcd/etcd.conf' }
   
-- name: restart service etct, in all cases, also issue daemon-reload to pick up config changes
+- name: restart service etcd, in all cases, also issue daemon-reload to pick up config changes
   systemd:
     name: etcd
     state: restarted
     daemon_reload: yes
     enabled: yes
 
-# install flanneld service
-- name: make sure etcd is installed
+# install flannel service
+- name: make sure flannel is installed
   package:
-    name: flanneld
-    state: latest
-
-- name: flanneld template and configuration
-  template:
-    src: { item.copyfrom }
-    dest: { item.copyto }
-  with_items:
-    - { copyfrom: 'service/flanneld.service', copyto: '/lib/systemd/system/flanneld.service' }
-    - { copyfrom: 'config/flanneld.conf', copyto: '/etc/flanneld/flanneld.conf' }
+    name: flannel-0.7.0
+    state: installed
+    
+- name: Ensures /etc/flanneld/ dir exists
+  file: path=/etc/flanneld/ state=directory
   
+- name: flannel template and configuration
+  template:
+    src: "{{ item.src }}"
+    dest: "{{ item.dest }}"
+  with_items:
+    - { src: 'service/flanneld.service', dest: '/lib/systemd/system/flanneld.service' }
+    - { src: 'config/flanneld.conf', dest: '/etc/flanneld/flanneld.conf' }
+
+- name: set value in etcd for flanneld
+  shell: ./install.sh
+  args:
+    chdir: /tmp/k8s/shellscript/   
+    
 - name: restart service flanneld, in all cases, also issue daemon-reload to pick up config changes
   systemd:
     name: flanneld
@@ -41,29 +70,32 @@
     daemon_reload: yes
     enabled: yes 
 
-# prepare shell script for all container
-- name: Create /tmp/k8s/shellscript/ directory
+# copy cert file
+- name: make sure /tmp/k8s/shellscript/ exists
   file:
-    path: "/tmp/k8s/shellscript/"
+    path: "/etc/kubernetes/ca_file/master/"
     state: "directory"
-
-- name: copy shellscript to /tmp/k8s/shellscript/
-  template:
-    src: shellscript/{{ item.src }} 
-    dest: /tmp/k8s/shellscript/{{ item.dest }}
-    mode: 0744
-  with_items:
-    - {src: apiserver.sh, dest: apiserver.sh}
-    - {src: controller-manager.sh, dest: controller-manager.sh}
-    - {src: scheduler.sh, dest: scheduler.sh}  
-    - {src: kubep-roxy.sh, dest: kubeproxy.sh}  
+    
+- name: copy cert files
+  copy:
+    src: files/ca_file/master/
+    dest: /etc/kubernetes/ca_file/master/
+    mode: 0644
+    
+- name: copy basic auth csv files
+  copy:
+    src: files/ca_file/basic_auth.csv
+    dest: /etc/kubernetes/ca_file/basic_auth.csv
+    mode: 0644
 
 # Apiserver container
 - name: stop apiserver 
   command: docker stop apiserver
+  ignore_errors: yes
   
-- name: stop apiserver 
+- name: rm apiserver 
   command: docker rm apiserver
+  ignore_errors: yes
 
 - name: start apiserver
   shell: ./apiserver.sh
@@ -73,9 +105,11 @@
 # controller-manager container
 - name: stop controller-manager 
   command: docker stop controller-manager
+  ignore_errors: yes
   
-- name: stop controller-manager 
+- name: rm controller-manager 
   command: docker rm controller-manager
+  ignore_errors: yes
 
 - name: start controller-manager
   shell: ./controller-manager.sh
@@ -85,9 +119,11 @@
 # scheduler container  
 - name: stop scheduler
   command: docker stop scheduler
+  ignore_errors: yes
   
-- name: stop scheduler 
+- name: rm scheduler 
   command: docker rm scheduler
+  ignore_errors: yes
 
 - name: start scheduler
   shell: ./scheduler.sh
@@ -97,9 +133,11 @@
 # kube-proxy container  
 - name: stop kube-proxy
   command: docker stop kube-proxy
+  ignore_errors: yes
   
-- name: stop kube-proxy 
+- name: rm kube-proxy 
   command: docker rm kube-proxy
+  ignore_errors: yes
 
 - name: start kube-proxy
   shell: ./kube-proxy.sh
@@ -107,11 +145,18 @@
     chdir: /tmp/k8s/shellscript/   
   
 # install kubectl service
-- name: make sure kubectl is installed
-  package:
-    name: kubectl
-    state: latest  
-  
+#- name: make sure kubectl is installed
+#  package:
+#    name: kubectl
+#    state: latest  
+ 
+- name: install kubectl 
+  get_url:
+    url: "https://storage.googleapis.com/kubernetes-release/release/v1.6.0/bin/linux/amd64/kubectl"
+    dest: "/bin/"
+    validate_certs: no
+    mode: 0744
+
 # cleanup
 - name: finalCleanup
   file: path=/tmp/k8s/shellscript/ state=absent

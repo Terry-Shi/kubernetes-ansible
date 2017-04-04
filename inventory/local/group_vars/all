@@ -1,7 +1,27 @@
 deploy_environment: local
 
+# for docker
 docker_version: 1.12.6
-registry_url: "10.19.248.12:30100"
+registry_url: 10.19.248.12:30100
 docker_dir: /data/docker
-# FLANNEL_SUBNET=
-flannel_subnet: "172.16.0.0/16"
+
+# for flanneld.conf and apiserver.sh
+flannel_etcd: http://192.168.1.24:2379
+# for /roles/master/templates/shellscript/install.sh
+flannel_subnet: 172.16.0.0/16
+
+# for kubelet
+cluster_dns: 192.168.0.100
+domain: "enn.cn"
+kubelet_dir: /data/kubelet
+manifest_dir: /data/manifests
+
+# for etcd
+# "myetcd" should match etcd.conf ETCD_NAME
+etcd_init_cluster: myetcd=http://192.168.1.24:2380
+
+# for apiserver.sh and controller-manager.sh
+ip_range: 192.168.0.0/16
+# for controller-manager.sh
+cluster_name: yc-cluster
+

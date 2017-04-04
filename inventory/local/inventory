@@ -1,5 +1,6 @@
 [master]
-10.19.130.149
+#10.19.130.149
+192.168.1.24
 
 [slave]
 10.19.130.150
@@ -10,8 +11,5 @@ master
 slave
 
 [master:vars]
-docker_version=1.12.6
 kubernetes_version=v1.6.0
-etcd_cluster=
-cluster_dns=
-flannel_etcd=http://10.19.130.123:2379
+# 定义在这里的变量，比在 ./group_vars/all 中变量的优先

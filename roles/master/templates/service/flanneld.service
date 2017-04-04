@@ -6,7 +6,7 @@ Description=flannel is an etcd backed overlay network for containers
 [Service]
 Type=notify
 EnvironmentFile=-/etc/flanneld/flanneld.conf
-ExecStart=/usr/local/bin/flanneld --etcd-endpoints=${FLANNEL_ETCD} --etcd-prefix=${FLANNEL_ETCD_KEY} $FLANNEL_OPTIONS
+ExecStart=/bin/flanneld --etcd-endpoints=${FLANNEL_ETCD} --etcd-prefix=${FLANNEL_ETCD_KEY} $FLANNEL_OPTIONS
 
 [Install]
 WantedBy=multi-user.target

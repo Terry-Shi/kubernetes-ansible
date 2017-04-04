@@ -71,6 +71,9 @@
     list="docker-engine-{{docker_version}}"
   register: docker_engine_pkg
 
+- name: debug output docker_engine_pkg.results[0].yumstate
+  debug: var=docker_engine_pkg.results[0].yumstate
+
 - name: uninstall docker-engine-selinux
   yum:
     name: docker-engine

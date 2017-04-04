@@ -1,9 +1,11 @@
+#!/bin/bash
+
 docker run -d \
   --name=apiserver \
   --net=host \
   --restart=always \
   -v /etc/kubernetes:/etc/kubernetes \
-  danielqsj/kube-apiserver-amd64:v1.6.0 \
+ gcr.io/google_containers/kube-apiserver-amd64:v1.6.0 \
   kube-apiserver \
   --insecure-bind-address=127.0.0.1 \
   --insecure-port=8080 \

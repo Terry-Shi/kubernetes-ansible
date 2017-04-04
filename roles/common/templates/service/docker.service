@@ -10,8 +10,8 @@ Type=notify
 # exists and systemd currently does not support the cgroup feature set required
 # for containers run by docker
 # TODO: EnvironmentFile=-/run/flannel/subnet.env
-ExecStart=/usr/bin/dockerd  --ip-masq=false  --insecure-registry "{{ registry_url }}" --graph="{{ docker_dir }}" 
-# TODO: add back at above line --bip=${FLANNEL_SUBNET} --mtu=${FLANNEL_MTU}
+ExecStart=/usr/bin/dockerd  --ip-masq=false  --insecure-registry {{ registry_url }}  
+# TODO: add back at above line --bip=${FLANNEL_SUBNET} --mtu=${FLANNEL_MTU} --graph={{ docker_dir }}
 
 ExecReload=/bin/kill -s HUP $MAINPID
 # Having non-zero Limit*s causes performance problems due to accounting overhead
