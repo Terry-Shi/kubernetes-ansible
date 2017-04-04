@@ -67,29 +67,24 @@
     gpgcheck: yes
 
 - name: check if specific version of docker-engine is installed
-  yum:
-    list="docker-engine-{{docker_version}}"
-  register: docker_engine_pkg
+  shell: yum list installed docker-engine | grep docker-engine  | awk '{print $2}' | cut -d'-' -f1
+  register: docker_engine_pkg_version
 
-- name: debug output docker_engine_pkg.results[0].yumstate
-  debug: var=docker_engine_pkg.results[0].yumstate
-
-- name: uninstall docker-engine-selinux
+- name: uninstall old docker-engine-selinux
   yum:
     name: docker-engine
     state: absent
-  when: not docker_engine_pkg.results[0].yumstate == 'installed'
-  
-- name: check if specific version of docker-engine-selinux is installed
-  yum:
-    list="docker-engine-selinux-{{docker_version}}"
-  register: docker_engine_selinux_pkg
+  when: docker_engine_pkg_version.stdout != "{{docker_version}}"
 
-- name: uninstall docker-engine-selinux
+- name: check if specific version of docker-engine-selinux is installed
+  shell: yum list installed docker-engine-selinux | grep docker-engine-selinux  | awk '{print $2}' | cut -d'-' -f1
+  register: docker_engine_selinux_pkg_version
+  
+- name: uninstall old docker-engine-selinux
   yum:
     name: docker-engine-selinux
     state: absent
-  when: not docker_engine_selinux_pkg.results[0].yumstate == 'installed'
+  when: docker_engine_selinux_pkg_version.stdout != "{{docker_version}}"
 
 - name: install one specific version of docker-engine-selinux
   yum:
@@ -118,5 +113,3 @@
 # cleanup
 - name: finalCleanup
   file: path=/tmp/k8s/ state=absent
-  
-  
